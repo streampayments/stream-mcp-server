@@ -14,6 +14,7 @@ def register_all_tools(mcp: FastMCP) -> None:
         coupons,
         customers,
         docs,
+        endpoints,
         invoices,
         payment_links,
         payments,
@@ -27,3 +28,4 @@ def register_all_tools(mcp: FastMCP) -> None:
     coupons.register(mcp)
     invoices.register(mcp)
     docs.register(mcp)
+    endpoints.register(mcp)

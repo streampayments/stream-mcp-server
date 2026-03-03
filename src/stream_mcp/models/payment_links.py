@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -23,9 +25,14 @@ class CreatePaymentLinkRequest(BaseModel):
     coupons: list[str] | None = Field(default=None, description="Coupon IDs to apply.")
     max_number_of_payments: int | None = Field(default=None, description="Maximum number of payments allowed.")
     valid_until: str | None = Field(default=None, description="ISO-8601 expiry timestamp. Null = never expires.")
+    confirmation_message: str | None = Field(default=None, description="Optional message shown after successful payment.")
+    payment_methods: dict[str, bool] | None = Field(default=None, description="Payment methods configuration for this link.")
+    custom_fields: dict[str, Any] | None = Field(default=None, description="JSON schema for custom fields to collect from payer.")
     success_redirect_url: str | None = Field(default=None, description="URL to redirect to after successful payment.")
     failure_redirect_url: str | None = Field(default=None, description="URL to redirect to after failed payment.")
     organization_consumer_id: str | None = Field(default=None, description="Pre-assign a customer to this link.")
+    custom_metadata: dict[str, Any] | None = Field(default=None, description="Additional metadata attached to the payment link.")
+    contact_information_type: str | None = Field(default=None, description="Required contact info type: PHONE or EMAIL.")
 
 
 class UpdatePaymentLinkStatusRequest(BaseModel):

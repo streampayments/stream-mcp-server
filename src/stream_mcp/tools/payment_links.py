@@ -30,9 +30,17 @@ def register(mcp: FastMCP) -> None:
         items: list[dict],
         description: str | None = None,
         currency: str = "SAR",
+                coupons: list[str] | None = None,
         valid_until: str | None = None,
         max_number_of_payments: int | None = None,
+                confirmation_message: str | None = None,
+                payment_methods: dict[str, bool] | None = None,
+                custom_fields: dict[str, Any] | None = None,
+                success_redirect_url: str | None = None,
+                failure_redirect_url: str | None = None,
         organization_consumer_id: str | None = None,
+                custom_metadata: dict[str, Any] | None = None,
+                contact_information_type: str | None = None,
         ctx: Context = None,  # type: ignore[assignment]
     ) -> dict[str, Any]:
         """Create a new payment / checkout link on Stream.
@@ -42,6 +50,16 @@ def register(mcp: FastMCP) -> None:
           - quantity   (int ≥ 1, optional, default 1)
           - coupons    (list[str], optional)
 
+                Optional fields supported by this tool:
+                    - coupons (payment-link level)
+                    - confirmation_message
+                    - payment_methods
+                    - custom_fields
+                    - success_redirect_url / failure_redirect_url
+                    - organization_consumer_id
+                    - custom_metadata
+                    - contact_information_type (PHONE or EMAIL)
+
         You **cannot** mix one-time and recurring products in the same link.
         """
         body = CreatePaymentLinkRequest(
@@ -49,9 +67,17 @@ def register(mcp: FastMCP) -> None:
             items=items,  # type: ignore[arg-type]
             description=description,
             currency=currency,
+                        coupons=coupons,
             valid_until=valid_until,
             max_number_of_payments=max_number_of_payments,
+                        confirmation_message=confirmation_message,
+                        payment_methods=payment_methods,
+                        custom_fields=custom_fields,
+                        success_redirect_url=success_redirect_url,
+                        failure_redirect_url=failure_redirect_url,
             organization_consumer_id=organization_consumer_id,
+                        custom_metadata=custom_metadata,
+                        contact_information_type=contact_information_type,
         )
         client = await get_client(ctx)
         try:
