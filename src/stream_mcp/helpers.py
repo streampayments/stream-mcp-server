@@ -33,40 +33,42 @@ async def get_client(ctx: "Context") -> StreamClient:
 
     Resolution order:
 
-    1. **Lifespan client** — used in local / stdio mode where a single
-       ``STREAM_API_KEY`` is set as an environment variable.
-    2. **Per-user client** — used in remote mode where each user passes
+    1. **Per-user client** — used in remote mode where each user passes
        their own API key as a Bearer token.
+    2. **Lifespan client** — used in local / stdio mode where a single
+       ``STREAM_API_KEY`` is set as an environment variable.
     """
-    # ── 1. Local mode: shared client from server lifespan ─────────────
+    # ── 1. Remote mode: per-user client from Bearer token ─────────────
+    api_key = current_api_key.get()
+    if api_key:
+        base_url = settings.stream_base_url
+        cache_key = f"{api_key}::{base_url}"
+
+        if cache_key not in _client_cache:
+            client = StreamClient(
+                api_key=api_key,
+                base_url=base_url,
+                timeout=settings.stream_timeout,
+                max_retries=settings.stream_max_retries,
+            )
+            await client.__aenter__()
+            _client_cache[cache_key] = client
+            logger.info(
+                "Created cached StreamClient for remote user (key=…%s, base=%s)",
+                api_key[-4:], base_url,
+            )
+
+        return _client_cache[cache_key]
+
+    # ── 2. Local mode: shared client from server lifespan ─────────────
     shared_client = ctx.lifespan_context.get("client")
     if shared_client is not None:
         return shared_client
 
-    # ── 2. Remote mode: per-user client from Bearer token ─────────────
-    api_key = current_api_key.get()
+    # ── 3. No auth available ──────────────────────────────────────────
     if not api_key:
         raise StreamError(
             "No Stream API key found. "
             "In local mode, set the STREAM_API_KEY env var. "
             "In remote mode, pass your key as a Bearer token in the Authorization header."
         )
-
-    base_url = settings.stream_base_url
-    cache_key = f"{api_key}::{base_url}"
-
-    if cache_key not in _client_cache:
-        client = StreamClient(
-            api_key=api_key,
-            base_url=base_url,
-            timeout=settings.stream_timeout,
-            max_retries=settings.stream_max_retries,
-        )
-        await client.__aenter__()
-        _client_cache[cache_key] = client
-        logger.info(
-            "Created cached StreamClient for remote user (key=…%s, base=%s)",
-            api_key[-4:], base_url,
-        )
-
-    return _client_cache[cache_key]
