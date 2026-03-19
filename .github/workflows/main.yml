@@ -1,0 +1,57 @@
+name: CI (Build -> Lint -> Push)
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-lint-push-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup Python Env
+        uses: streampayments/stream-actions/.github/actions/setup-python@main
+        with:
+          docker-cache-read-only: true
+
+      - name: Setup Env Vars
+        # This repo config: create .env from .env.example if available.
+        run: |
+          if [ -f .env.example ]; then
+            cp .env.example .env
+          else
+            touch .env
+          fi
+
+      - name: Run CI
+        # Shared/internal action (specific to Stream org tooling)
+        uses: streampayments/stream-actions/.github/actions/ci-python@main
+        with:
+          should-lint: true
+          # This repo currently has no tests
+          should-setup-test-containers: false
+          should-test: false
+          should-check-coverage: false
+
+      - name: Push image to ECR
+        uses: streampayments/stream-actions/.github/actions/push-image-to-ecr@main
+        with:
+          ecr-access-key-id: ${{ secrets.AWS_ECR_ACCESS_KEY }}
+          ecr-secret-access-key: ${{ secrets.AWS_ECR_SECRET_KEY }}
+          ecr-region: ${{ secrets.AWS_ECR_REGION }}
+
+      - name: Update service version
+        uses: streampayments/stream-actions/.github/actions/update-service-version@main
+        with:
+          gh-token: ${{ secrets.STREAM_GH_TOKEN }}
+          service-name: ${{ github.event.repository.name }}
+          service-version: ${{ github.sha }}
+          environment: dev

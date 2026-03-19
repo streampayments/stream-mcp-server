@@ -30,6 +30,8 @@ cp .env.example .env
 | `STREAM_BASE_URL` | `https://stream-app-service.streampay.sa` | API base URL |
 | `STREAM_TIMEOUT` | `30` | Request timeout (seconds) |
 | `STREAM_MAX_RETRIES` | `2` | Retry count for 429 / 5xx |
+| `HOST` | `0.0.0.0` | Remote server bind host (`stream-mcp-remote`) |
+| `PORT` | `8000` | Remote server bind port (`stream-mcp-remote`) |
 
 ### 3. Run
 
@@ -49,7 +51,7 @@ HOST=0.0.0.0 PORT=8000 stream-mcp-remote
 Endpoint:
 
 ```text
-http://localhost:8000/sse
+http://localhost:8000/mcp
 ```
 
 ---
@@ -79,7 +81,7 @@ Use one of these two patterns in your MCP config file (`claude_desktop_config.js
 {
   "mcpServers": {
     "stream": {
-      "url": "http://localhost:8000/sse",
+      "url": "http://localhost:8000/mcp",
       "headers": {
         "Authorization": "Bearer sk_live_your_key_here"
       }
@@ -182,7 +184,7 @@ Users add this to their MCP client config:
 {
   "mcpServers": {
     "stream": {
-      "url": "https://your-domain.com/sse",
+      "url": "https://your-domain.com/mcp",
       "headers": {
         "Authorization": "Bearer sk_live_YOUR_STREAM_API_KEY"
       }
