@@ -3,14 +3,13 @@
 Two modes of operation:
 
 * **Local (stdio)** — ``stream-mcp`` command.  Uses ``STREAM_API_KEY`` env var.
-* **Remote (SSE)** — ``stream-mcp-remote`` command.  Each user passes their
+* **Remote (Streamable HTTP)** — ``stream-mcp-remote`` command.  Each user passes their
   own API key as a ``Bearer`` token; the server is stateless.
 """
 
 from __future__ import annotations
 
 import logging
-import os
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 
@@ -63,32 +62,28 @@ def main() -> None:
 
 
 def main_remote() -> None:
-    """Remote mode — SSE transport with Bearer-token auth.
+    """Remote mode — Streamable HTTP transport with Bearer-token auth.
 
     Environment variables:
     * ``HOST`` — bind address (default ``0.0.0.0``)
     * ``PORT`` — bind port   (default ``8000``)
 
-    Clients must connect to: http://<host>:<port>/sse
+    Clients must connect to: http://<host>:<port>/mcp
     """
     import uvicorn
     from stream_mcp.auth import BearerAuthMiddleware
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(name)s | %(message)s")
 
-    host = os.environ.get("HOST", "0.0.0.0")  # noqa: S104 — intentional for container deployments
-    try:
-        port = int(os.environ.get("PORT", "8000"))
-    except ValueError:
-        logger.warning("Invalid PORT value, defaulting to 8000")
-        port = 8000
+    host = settings.host  # noqa: S104 — intentional for container deployments
+    port = settings.port
 
-    # SSE transport mounts at /sse — clients must use that path
-    app = mcp.http_app(transport="sse")
+    # Streamable HTTP transport mounts at /mcp — clients must use that path
+    app = mcp.http_app(transport="streamable-http")
     app = BearerAuthMiddleware(app)
 
     logger.info("Starting remote MCP server on %s:%d", host, port)
-    logger.info("SSE endpoint -> http://%s:%d/sse", host, port)
+    logger.info("MCP endpoint -> http://%s:%d/mcp", host, port)
     uvicorn.run(app, host=host, port=port)
 
 

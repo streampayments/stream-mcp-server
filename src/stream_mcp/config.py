@@ -1,5 +1,6 @@
 """Configuration for the Stream MCP server, loaded from environment variables."""
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,6 +12,8 @@ class Settings(BaseSettings):
     stream_docs_url: str = "https://docs.streampay.sa"
     stream_timeout: int = 30  # seconds
     stream_max_retries: int = 2
+    host: str = Field(default="127.0.0.1", validation_alias="HOST")
+    port: int = Field(default=8000, validation_alias="PORT")
 
 
 settings = Settings()
