@@ -25,6 +25,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Checkout shared actions
+        uses: actions/checkout@v4
+        with:
+          repository: streampayments/stream-actions
+          token: ${{ secrets.STREAM_GH_TOKEN }}
+          path: .github/stream-actions
+
       - name: Validate hotfix
         run: |
           set -euo pipefail
@@ -38,7 +45,7 @@ jobs:
 
       - name: Setup Python Env
         if: ${{ inputs.run_tests }}
-        uses: streampayments/stream-actions/.github/actions/setup-python@main
+        uses: ./.github/stream-actions/.github/actions/setup-python
         with:
           docker-cache-read-only: true
 
@@ -53,7 +60,7 @@ jobs:
 
       - name: Run CI
         if: ${{ inputs.run_tests }}
-        uses: streampayments/stream-actions/.github/actions/ci-python@main
+        uses: ./.github/stream-actions/.github/actions/ci-python
         with:
           should-lint: true
           # This repo currently has no tests
@@ -62,7 +69,7 @@ jobs:
           should-check-coverage: false
 
       - name: Push image to ECR
-        uses: streampayments/stream-actions/.github/actions/push-image-to-ecr@main
+        uses: ./.github/stream-actions/.github/actions/push-image-to-ecr
         with:
           ecr-access-key-id: ${{ secrets.AWS_ECR_ACCESS_KEY }}
           ecr-secret-access-key: ${{ secrets.AWS_ECR_SECRET_KEY }}
