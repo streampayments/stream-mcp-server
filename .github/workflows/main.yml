@@ -11,16 +11,18 @@ on:
   push:
     branches:
       - main
+      - 'CI/CD_fixes'
 
 jobs:
   build-lint-push-image:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Setup Python Env
-        uses: streampayments/stream-actions/.github/actions/setup-python@main
-        with:
-          docker-cache-read-only: true
+      - name: Setup Python Environment
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -r requirements.txt
 
       - name: Setup Env Vars
         # This repo config: create .env from .env.example if available.
@@ -32,14 +34,8 @@ jobs:
           fi
 
       - name: Run CI
-        # Shared/internal action (specific to Stream org tooling)
-        uses: streampayments/stream-actions/.github/actions/ci-python@main
-        with:
-          should-lint: true
-          # This repo currently has no tests
-          should-setup-test-containers: false
-          should-test: false
-          should-check-coverage: false
+        run: |
+          source .venv/bin/activate
 
       - name: Push image to ECR
         uses: streampayments/stream-actions/.github/actions/push-image-to-ecr@main
