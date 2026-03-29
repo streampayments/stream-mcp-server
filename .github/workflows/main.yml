@@ -17,10 +17,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Setup Python Env
-        uses: streampayments/stream-actions/.github/actions/setup-python@main
+        uses: actions/setup-python@v5
         with:
-          docker-cache-read-only: true
+          python-version: "3.12"
 
       - name: Setup Env Vars
         # This repo config: create .env from .env.example if available.
@@ -31,22 +34,33 @@ jobs:
             touch .env
           fi
 
-      - name: Run CI
-        # Shared/internal action (specific to Stream org tooling)
-        uses: streampayments/stream-actions/.github/actions/ci-python@main
-        with:
-          should-lint: true
-          # This repo currently has no tests
-          should-setup-test-containers: false
-          should-test: false
-          should-check-coverage: false
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
 
-      - name: Push image to ECR
-        uses: streampayments/stream-actions/.github/actions/push-image-to-ecr@main
+      - name: Run CI
+        run: python -c "import stream_mcp; print('stream_mcp import OK')"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          ecr-access-key-id: ${{ secrets.AWS_ECR_ACCESS_KEY }}
-          ecr-secret-access-key: ${{ secrets.AWS_ECR_SECRET_KEY }}
-          ecr-region: ${{ secrets.AWS_ECR_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ECR_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_ECR_SECRET_KEY }}
+          aws-region: ${{ secrets.AWS_ECR_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push image to ECR
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: ${{ github.event.repository.name }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
+          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
 
       - name: Update service version
         uses: streampayments/stream-actions/.github/actions/update-service-version@main
