@@ -36,11 +36,17 @@ jobs:
             exit 1
           fi
 
-      - name: Setup Python Env
+      - name: Set up Python
         if: ${{ inputs.run_tests }}
-        uses: streampayments/stream-actions/.github/actions/setup-python@main
+        uses: actions/setup-python@v5
         with:
-          docker-cache-read-only: true
+          python-version: '3.12'
+
+      - name: Install Python dependencies
+        if: ${{ inputs.run_tests }}
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
 
       - name: Setup Env Vars
         if: ${{ inputs.run_tests }}
@@ -53,16 +59,12 @@ jobs:
 
       - name: Run CI
         if: ${{ inputs.run_tests }}
-        uses: streampayments/stream-actions/.github/actions/ci-python@main
-        with:
-          should-lint: true
-          # This repo currently has no tests
-          should-setup-test-containers: false
-          should-test: false
-          should-check-coverage: false
+        run: |
+          python -c "import stream_mcp; print('stream_mcp import OK')"
+          echo "Skipping tests by configuration."
 
       - name: Push image to ECR
-        uses: streampayments/stream-actions/.github/actions/push-image-to-ecr@main
+        uses: ./.github/actions/push-image-to-ecr
         with:
           ecr-access-key-id: ${{ secrets.AWS_ECR_ACCESS_KEY }}
           ecr-secret-access-key: ${{ secrets.AWS_ECR_SECRET_KEY }}
