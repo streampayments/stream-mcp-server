@@ -2,6 +2,7 @@ name: CI (Build -> Lint -> Push)
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -11,18 +12,24 @@ on:
   push:
     branches:
       - main
-      - 'CI/CD_fixes'
 
 jobs:
   build-lint-push-image:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Setup Python Environment
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python dependencies
         run: |
-          python -m venv .venv
-          source .venv/bin/activate
-          pip install -r requirements.txt
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
 
       - name: Setup Env Vars
         # This repo config: create .env from .env.example if available.
@@ -33,21 +40,14 @@ jobs:
             touch .env
           fi
 
-      - name: Run CI
+      - name: Run CI smoke checks
         run: |
-          source .venv/bin/activate
+          python -c "import stream_mcp; print('stream_mcp import OK')"
 
       - name: Push image to ECR
-        uses: streampayments/stream-actions/.github/actions/push-image-to-ecr@main
+        uses: ./.github/actions/push-image-to-ecr
         with:
+          gh-token: ${{ secrets.STREAM_GH_TOKEN }}
           ecr-access-key-id: ${{ secrets.AWS_ECR_ACCESS_KEY }}
           ecr-secret-access-key: ${{ secrets.AWS_ECR_SECRET_KEY }}
           ecr-region: ${{ secrets.AWS_ECR_REGION }}
-
-      - name: Update service version
-        uses: streampayments/stream-actions/.github/actions/update-service-version@main
-        with:
-          gh-token: ${{ secrets.STREAM_GH_TOKEN }}
-          service-name: ${{ github.event.repository.name }}
-          service-version: ${{ github.sha }}
-          environment: dev

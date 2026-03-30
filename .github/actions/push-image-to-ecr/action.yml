@@ -1,0 +1,48 @@
+name: Push image to ECR
+description: Build Docker image and push tags to AWS ECR
+
+inputs:
+  ecr-access-key-id:
+    description: AWS access key ID for ECR
+    required: true
+  ecr-secret-access-key:
+    description: AWS secret access key for ECR
+    required: true
+  ecr-region:
+    description: AWS region for ECR
+    required: true
+  gh-token:
+    description: Compatibility input (unused in this local action)
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ inputs.ecr-access-key-id }}
+        aws-secret-access-key: ${{ inputs.ecr-secret-access-key }}
+        aws-region: ${{ inputs.ecr-region }}
+
+    - name: Log in to Amazon ECR
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Build and push image
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+        REGISTRY="${ACCOUNT_ID}.dkr.ecr.${{ inputs.ecr-region }}.amazonaws.com"
+        REPOSITORY="${GITHUB_REPOSITORY##*/}"
+        IMAGE_URI="${REGISTRY}/${REPOSITORY}"
+
+        aws ecr describe-repositories --repository-names "$REPOSITORY" --region "${{ inputs.ecr-region }}" >/dev/null 2>&1 || \
+          aws ecr create-repository --repository-name "$REPOSITORY" --region "${{ inputs.ecr-region }}" >/dev/null
+
+        docker build -t "$IMAGE_URI:${GITHUB_SHA}" -t "$IMAGE_URI:latest" .
+        docker push "$IMAGE_URI:${GITHUB_SHA}"
+        docker push "$IMAGE_URI:latest"
+
+        echo "Pushed image: $IMAGE_URI:${GITHUB_SHA}"
